@@ -3,164 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Last.fm Recent Tracks</title>
+    <title>Last.fm Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { 
-            margin: 0; 
-            padding: 0; 
-            background-color: #000; 
-            height: 100vh; 
-            overflow: hidden;
-            font-family: sans-serif;
-        }
+        /* CSS Reset & Base */
+        body { margin: 0; background: #050505; font-family: 'Montserrat', sans-serif; overflow-x: hidden; }
+        
+        /* Grid Layout */
         #grid {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: repeat(2, 1fr);
-            gap: 15px;
-            padding: 20px;
+            grid-template-columns: repeat(2, 1fr); /* Mobile default */
+            grid-auto-rows: 50vh; /* 2 rows fill screen roughly */
             width: 100vw;
             height: 100vh;
-            box-sizing: border-box;
         }
+        @media (min-width: 768px) {
+            #grid { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 33.33vh; }
+        }
+        @media (min-width: 1024px) {
+            #grid { grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(2, 50vh); }
+        }
+
+        /* Track Item */
         .track-container {
             position: relative;
             overflow: hidden;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             background: #111;
+            border: 1px solid #222;
+            display: block; /* Make anchor behave like block */
+            text-decoration: none; /* Remove underline */
         }
+        
+        /* Image & Zoom Effect */
         .track-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             opacity: 0;
-            transition: opacity 0.5s ease-in-out;
+            transition: opacity 0.6s ease, transform 0.6s ease;
+            filter: grayscale(20%);
         }
-        .track-img.loaded {
-            opacity: 1;
+        .track-img.loaded { opacity: 1; }
+        .track-container:hover .track-img {
+            transform: scale(1.1);
+            filter: grayscale(0%);
         }
+
+        /* Info Overlay */
         .track-info {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0,0,0,0.7);
+            bottom: 0; left: 0; right: 0;
+            padding: 20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
             color: white;
-            padding: 8px;
-            font-size: 12px;
-            transform: translateY(100%);
-            transition: transform 0.3s;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s ease;
         }
         .track-container:hover .track-info {
             transform: translateY(0);
+            opacity: 1;
         }
+        
+        .track-title { font-weight: 800; font-size: 1.1rem; margin-bottom: 4px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .track-artist { font-weight: 400; font-size: 0.9rem; color: #ccc; }
+
+        /* Now Playing Indicator */
+        .now-playing-badge {
+            position: absolute;
+            top: 15px; right: 15px;
+            background: rgba(227, 27, 35, 0.9); /* Red brand color */
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 0 10px rgba(227, 27, 35, 0.5);
+            z-index: 10;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+        }
+        .is-playing .now-playing-badge { opacity: 1; transform: translateY(0); }
+        .is-playing .track-img { filter: grayscale(0%); border-bottom: 4px solid #E31B23; box-sizing: border-box; }
+
+        /* Equalizer Animation */
+        .eq-bar {
+            width: 3px; background: white; animation: eq 1s infinite ease-in-out;
+        }
+        .eq-bar:nth-child(1) { height: 8px; animation-delay: 0.1s; }
+        .eq-bar:nth-child(2) { height: 12px; animation-delay: 0.2s; }
+        .eq-bar:nth-child(3) { height: 6px; animation-delay: 0.3s; }
+        @keyframes eq { 0%, 100% { height: 4px; } 50% { height: 12px; } }
+
     </style>
 </head>
 <body>
-
-    <div id="grid"></div>
+    <div id="grid">
+        <!-- Slots generated by JS -->
+    </div>
 
     <script>
         const USER = 'camoril';
         const API_KEY = '7a67bfe297bfe43956a01cab95dfc965';
-        const GRID_ELEMENT = document.getElementById('grid');
-        
-        // Cache para imágenes de artistas para no saturar la API
+        const GRID = document.getElementById('grid');
+        const SLOT_COUNT = 10;
         const artistImageCache = {};
+
+        // Initialize Grid Slots
+        function initGrid() {
+            GRID.innerHTML = '';
+            for (let i = 0; i < SLOT_COUNT; i++) {
+                const a = document.createElement('a');
+                a.className = 'track-container';
+                a.id = `slot-${i}`;
+                a.target = '_blank'; // Open in new tab
+                a.rel = 'noopener noreferrer'; // Security best practice
+                a.innerHTML = `
+                    <img class="track-img" src="" alt="">
+                    <div class="now-playing-badge">
+                        <span>LIVE</span>
+                        <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
+                    </div>
+                    <div class="track-info">
+                        <div class="track-title"></div>
+                        <div class="track-artist"></div>
+                    </div>
+                `;
+                GRID.appendChild(a);
+            }
+        }
 
         async function getArtistImage(artistName) {
             if (artistImageCache[artistName]) return artistImageCache[artistName];
-
             try {
-                const encodedArtist = encodeURIComponent(artistName);
-                const response = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodedArtist}&api_key=${API_KEY}&format=json`);
-                const data = await response.json();
-                
-                if (data.artist && data.artist.image) {
-                    // Intentar obtener imagen mega (4) o extralarge (3)
-                    const img = data.artist.image[4]['#text'] || data.artist.image[3]['#text'];
-                    if (img) {
-                        artistImageCache[artistName] = img;
-                        return img;
-                    }
-                }
-            } catch (e) {
-                console.error('Error fetching artist image:', e);
-            }
-            return null;
+                const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artistName)}&api_key=${API_KEY}&format=json`);
+                const data = await res.json();
+                const img = data.artist?.image?.[4]['#text'] || data.artist?.image?.[3]['#text'];
+                if (img) artistImageCache[artistName] = img;
+                return img;
+            } catch { return null; }
         }
 
         async function updateTracks() {
             try {
-                const response = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${USER}&api_key=${API_KEY}&format=json&limit=10`);
-                const data = await response.json();
-                
-                if (!data.recenttracks || !data.recenttracks.track) return;
+                const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${USER}&api_key=${API_KEY}&format=json&limit=${SLOT_COUNT}`);
+                const data = await res.json();
+                if (!data.recenttracks?.track) return;
 
                 const tracks = data.recenttracks.track;
                 
-                // Limpiar grid actual (o podrías hacer diffing para ser más eficiente, pero esto es simple)
-                GRID_ELEMENT.innerHTML = '';
-
-                // Procesar tracks en paralelo para las imágenes
-                const trackPromises = tracks.map(async (track) => {
-                    let imageUrl = track.image[3]['#text']; // extralarge
-
-                    if (!imageUrl) {
-                        imageUrl = await getArtistImage(track.artist['#text']);
-                    }
+                // Process images in parallel
+                const processed = await Promise.all(tracks.map(async (t) => {
+                    let img = t.image[3]['#text'];
+                    if (!img) img = await getArtistImage(t.artist['#text']);
+                    if (!img) img = 'https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png';
                     
-                    // Si aún no hay imagen, usar un placeholder o dejar vacío
-                    if (!imageUrl) imageUrl = 'https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png'; // Placeholder genérico de last.fm
-
                     return {
-                        image: imageUrl,
-                        title: track.name,
-                        artist: track.artist['#text'],
-                        album: track.album['#text']
+                        title: t.name,
+                        artist: t.artist['#text'],
+                        image: img,
+                        url: t.url,
+                        nowPlaying: t['@attr']?.nowplaying === 'true'
                     };
+                }));
+
+                // Update DOM slots
+                processed.forEach((track, i) => {
+                    if (i >= SLOT_COUNT) return;
+                    const slot = document.getElementById(`slot-${i}`);
+                    const imgEl = slot.querySelector('.track-img');
+                    const titleEl = slot.querySelector('.track-title');
+                    const artistEl = slot.querySelector('.track-artist');
+                    
+                    // Update Link
+                    if (slot.href !== track.url) slot.href = track.url;
+
+                    // Update Text
+                    if (titleEl.textContent !== track.title) titleEl.textContent = track.title;
+                    if (artistEl.textContent !== track.artist) artistEl.textContent = track.artist;
+
+                    // Update Image only if changed
+                    if (imgEl.src !== track.image) {
+                        imgEl.classList.remove('loaded');
+                        const temp = new Image();
+                        temp.onload = () => {
+                            imgEl.src = track.image;
+                            imgEl.classList.add('loaded');
+                        };
+                        temp.src = track.image;
+                    } else {
+                        if (!imgEl.classList.contains('loaded')) imgEl.classList.add('loaded');
+                    }
+
+                    // Update Now Playing Status
+                    if (track.nowPlaying) {
+                        slot.classList.add('is-playing');
+                    } else {
+                        slot.classList.remove('is-playing');
+                    }
                 });
 
-                const processedTracks = await Promise.all(trackPromises);
-
-                processedTracks.forEach(track => {
-                    const container = document.createElement('div');
-                    container.className = 'track-container';
-                    
-                    const img = document.createElement('img');
-                    img.className = 'track-img';
-                    img.alt = `${track.artist} - ${track.title}`;
-                    
-                    // Cargar imagen
-                    const tempImg = new Image();
-                    tempImg.onload = () => {
-                        img.src = track.image;
-                        img.classList.add('loaded');
-                    };
-                    tempImg.src = track.image;
-
-                    // Info overlay (opcional, pero útil)
-                    const info = document.createElement('div');
-                    info.className = 'track-info';
-                    info.textContent = `${track.artist} - ${track.title}`;
-
-                    container.appendChild(img);
-                    container.appendChild(info);
-                    GRID_ELEMENT.appendChild(container);
-                });
-
-            } catch (error) {
-                console.error('Error al obtener datos de Last.fm:', error);
-            }
+            } catch (e) { console.error(e); }
         }
 
-        // Actualizar inmediatamente y luego cada 15 segundos
+        initGrid();
         updateTracks();
-        setInterval(updateTracks, 15000);
+        setInterval(updateTracks, 10000);
     </script>
 </body>
 </html>
