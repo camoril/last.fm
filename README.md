@@ -1,22 +1,34 @@
 # Last.fm Recent Tracks Visualizer
 
-Este proyecto es una visualización web simple que muestra las últimas 10 canciones escuchadas por el usuario `camoril` en Last.fm.
+Este proyecto es una visualización web moderna y responsiva que muestra las últimas 10 canciones escuchadas por el usuario `camoril` en Last.fm.
 
 ## Funcionalidad
 
-- **Grid Visual**: Muestra una cuadrícula de 5x2 con las portadas de las canciones recientes.
+- **Grid Visual**: Muestra una cuadrícula dinámica (adaptable a móvil/desktop) con las imágenes de los artistas recientes.
 - **Actualización en Tiempo Real**: La página consulta la API de Last.fm cada 15 segundos para mantener la lista actualizada.
-- **Fallback Inteligente de Imágenes**:
-  - Intenta mostrar la portada del álbum primero.
-  - Si el álbum no tiene imagen, consulta automáticamente la API para obtener la imagen del artista.
-  - Si no hay imagen de artista, usa un placeholder genérico.
-- **Información al Hover**: Al pasar el cursor sobre una imagen, se despliega el nombre del artista y la canción.
+- **Prioridad de Imagen de Artista**:
+  - A diferencia de implementaciones estándar, este visualizador **ignora las portadas de álbumes** (que suelen ser inconsistentes o de baja calidad en la API) y busca siempre la imagen oficial del artista.
+  - Utiliza un sistema de caché en memoria para minimizar las llamadas a la API de `artist.getinfo`.
+- **Indicador "Now Playing"**: Muestra un badge animado con un ecualizador visual sobre la canción que se está reproduciendo actualmente.
+- **Interactivo**: Las tarjetas son enlaces directos a la página de la canción en Last.fm.
 
 ## Cómo funciona
 
-El proyecto consta de un único archivo `index.html` que utiliza tecnologías web estándar (HTML, CSS, JS) sin dependencias externas ni frameworks pesados.
+El proyecto consta de un único archivo `index.html` optimizado, sin dependencias de compilación ni frameworks pesados.
 
-1.  **API de Last.fm**: Se conecta a `ws.audioscrobbler.com` usando `user.getrecenttracks` para obtener el historial y `artist.getinfo` para las imágenes de respaldo.
-2.  **JavaScript Asíncrono**: Utiliza `async/await` y `Promise.all` para procesar las 10 pistas en paralelo, asegurando que la interfaz cargue rápidamente incluso cuando se deben buscar múltiples imágenes de artistas.
-3.  **Caché Local**: Implementa un sistema de caché simple en memoria para las imágenes de artistas, evitando llamadas redundantes a la API.
-4.  **CSS Grid**: Utiliza CSS Grid para un diseño responsivo y limpio que ocupa el 100% de la pantalla.
+1.  **API de Last.fm**:
+    - `user.getrecenttracks`: Obtiene el historial de escucha.
+    - `artist.getinfo`: Se llama para cada pista única para obtener una imagen de alta calidad del artista.
+2.  **JavaScript Moderno**:
+    - Uso extensivo de `async/await` y `Promise.all` para la carga paralela de metadatos.
+    - Manejo robusto de errores con *Optional Chaining* (`?.`) para prevenir caídas por respuestas API incompletas.
+3.  **Diseño**:
+    - CSS Grid para el layout.
+    - Tipografía 'Montserrat'.
+    - Diseño totalmente responsivo (Móvil: 2 columnas, Tablet: 3, Desktop: 5).
+
+## Instalación y Uso
+
+Simplemente abre el archivo `index.html` en un navegador moderno. No requiere servidor backend (aunque se recomienda usar un servidor local como Live Server para evitar restricciones de CORS en algunos navegadores, aunque la API de Last.fm suele permitirlo).
+
+Para modificar el usuario, edita la constante `USER` en `index.html`.
