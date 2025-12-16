@@ -146,7 +146,8 @@
             try {
                 const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(artistName)}&api_key=${API_KEY}&format=json`);
                 const data = await res.json();
-                const img = data.artist?.image?.[4]['#text'] || data.artist?.image?.[3]['#text'];
+                // Safe access with optional chaining
+                const img = data.artist?.image?.[4]?.['#text'] || data.artist?.image?.[3]?.['#text'];
                 if (img) artistImageCache[artistName] = img;
                 return img;
             } catch { return null; }
@@ -158,17 +159,22 @@
                 const data = await res.json();
                 if (!data.recenttracks?.track) return;
 
-                const tracks = data.recenttracks.track;
+                let tracks = data.recenttracks.track;
+                // Handle single track case (Last.fm API quirk)
+                if (!Array.isArray(tracks)) tracks = [tracks];
                 
                 // Process images in parallel
                 const processed = await Promise.all(tracks.map(async (t) => {
-                    let img = t.image[3]['#text'];
-                    if (!img) img = await getArtistImage(t.artist['#text']);
+                    const artistName = t.artist?.['#text'] || 'Unknown';
+                    
+                    // Always fetch artist image, ignoring album art
+                    let img = await getArtistImage(artistName);
+                    
                     if (!img) img = 'https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png';
                     
                     return {
                         title: t.name,
-                        artist: t.artist['#text'],
+                        artist: artistName,
                         image: img,
                         url: t.url,
                         nowPlaying: t['@attr']?.nowplaying === 'true'
