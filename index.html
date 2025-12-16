@@ -116,6 +116,7 @@
         const GRID = document.getElementById('grid');
         const SLOT_COUNT = 10;
         const artistImageCache = {};
+        const DEFAULT_IMG_HASH = '2a96cbd8b46e442fc41c2b86b821562f'; // Last.fm default star image hash
 
         // Initialize Grid Slots
         function initGrid() {
@@ -141,6 +142,24 @@
             }
         }
 
+        function getGeneratedPlaceholder(name) {
+            // Generate consistent color from name
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+            const color = '#' + '00000'.substring(0, 6 - c.length) + c;
+            
+            // Simple SVG placeholder
+            const svg = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
+                <rect width="100%" height="100%" fill="${color}"/>
+                <text x="50%" y="50%" font-family="'Montserrat', sans-serif" font-weight="800" font-size="24" fill="rgba(255,255,255,0.5)" text-anchor="middle" dy=".3em">${name}</text>
+            </svg>`;
+            return 'data:image/svg+xml;base64,' + btoa(svg);
+        }
+
         async function getArtistImage(artistName) {
             if (artistImageCache[artistName]) return artistImageCache[artistName];
             try {
@@ -148,8 +167,13 @@
                 const data = await res.json();
                 // Safe access with optional chaining
                 const img = data.artist?.image?.[4]?.['#text'] || data.artist?.image?.[3]?.['#text'];
-                if (img) artistImageCache[artistName] = img;
-                return img;
+                
+                // Check if it's the default placeholder
+                if (img && !img.includes(DEFAULT_IMG_HASH)) {
+                    artistImageCache[artistName] = img;
+                    return img;
+                }
+                return null;
             } catch { return null; }
         }
 
@@ -167,10 +191,21 @@
                 const processed = await Promise.all(tracks.map(async (t) => {
                     const artistName = t.artist?.['#text'] || 'Unknown';
                     
-                    // Always fetch artist image, ignoring album art
+                    // 1. Try Artist Image
                     let img = await getArtistImage(artistName);
                     
-                    if (!img) img = 'https://lastfm.freetls.fastly.net/i/u/300x300/2a96cbd8b46e442fc41c2b86b821562f.png';
+                    // 2. Fallback to Album Art (if valid and not default)
+                    if (!img) {
+                        const albumImg = t.image?.[3]?.['#text'];
+                        if (albumImg && !albumImg.includes(DEFAULT_IMG_HASH)) {
+                            img = albumImg;
+                        }
+                    }
+
+                    // 3. Fallback to Generated Placeholder
+                    if (!img) {
+                        img = getGeneratedPlaceholder(artistName);
+                    }
                     
                     return {
                         title: t.name,
