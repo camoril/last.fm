@@ -72,6 +72,7 @@
         
         .track-title { font-weight: 800; font-size: 1.1rem; margin-bottom: 4px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .track-artist { font-weight: 400; font-size: 0.9rem; color: #ccc; }
+        .track-album { font-weight: 400; font-size: 0.75rem; color: #999; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
         .track-info-content { flex: 1; min-width: 0; }
         .loved-icon {
@@ -115,6 +116,25 @@
         }
         .is-playing .now-playing-badge { opacity: 1; transform: translateY(0); }
         .is-playing .track-img { filter: grayscale(0%); border-bottom: 4px solid #E31B23; box-sizing: border-box; }
+
+        /* Time Badge */
+        .time-badge {
+            position: absolute;
+            top: 15px; right: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            color: #eee;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            z-index: 9;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+        }
+        .track-container:hover .time-badge { opacity: 1; transform: translateY(0); }
+        .is-playing .time-badge { display: none; } /* Hide time if playing */
 
         /* Equalizer Animation */
         .eq-bar {
@@ -248,10 +268,12 @@
                         <span>LIVE</span>
                         <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
                     </div>
+                    <div class="time-badge"></div>
                     <div class="track-info">
                         <div class="track-info-content">
                             <div class="track-title"></div>
                             <div class="track-artist"></div>
+                            <div class="track-album"></div>
                         </div>
                         <svg class="loved-icon" viewBox="0 0 24 24">
                             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
@@ -260,6 +282,23 @@
                 `;
                 GRID.appendChild(a);
             }
+        }
+
+        function timeAgo(uts) {
+            if (!uts) return '';
+            const seconds = Math.floor((new Date() - new Date(uts * 1000)) / 1000);
+            
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + "y";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + "mo";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + "d";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + "h";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + "m";
+            return "Just now";
         }
 
         function getGeneratedPlaceholder(name) {
@@ -331,6 +370,8 @@
                     return {
                         title: t.name,
                         artist: artistName,
+                        album: t.album?.['#text'] || '',
+                        date: t.date?.uts,
                         image: img,
                         url: t.url,
                         nowPlaying: t['@attr']?.nowplaying === 'true',
@@ -345,6 +386,8 @@
                     const imgEl = slot.querySelector('.track-img');
                     const titleEl = slot.querySelector('.track-title');
                     const artistEl = slot.querySelector('.track-artist');
+                    const albumEl = slot.querySelector('.track-album');
+                    const timeEl = slot.querySelector('.time-badge');
                     const lovedEl = slot.querySelector('.loved-icon');
                     
                     // Update Link
@@ -353,6 +396,13 @@
                     // Update Text
                     if (titleEl.textContent !== track.title) titleEl.textContent = track.title;
                     if (artistEl.textContent !== track.artist) artistEl.textContent = track.artist;
+                    if (albumEl.textContent !== track.album) albumEl.textContent = track.album;
+                    
+                    // Update Time
+                    if (!track.nowPlaying) {
+                        const timeStr = timeAgo(track.date);
+                        if (timeEl.textContent !== timeStr) timeEl.textContent = timeStr;
+                    }
 
                     // Update Loved Status
                     if (track.loved) {
