@@ -5,6 +5,8 @@ Todos los cambios notables en el proyecto "Last.fm Visualizer" serán documentad
 ## [2025-12-22] - Mejoras de UI y Funcionalidad
 
 ### Añadido
+- **Información de Álbum**: Se muestra el nombre del álbum debajo del artista para mayor contexto.
+- **Tiempo Relativo**: Badge que indica hace cuánto tiempo se escuchó la canción (ej. "2m", "1h"). Se oculta automáticamente si la canción se está reproduciendo.
 - **Indicador de "Loved Track"**: Se muestra un icono de corazón animado en las canciones marcadas como favoritas en Last.fm.
 - **Cambio de Usuario en UI**: Se implementó un botón flotante (FAB) y una ventana modal que permite cambiar el usuario de Last.fm directamente desde la interfaz.
 - **Persistencia**: El nombre de usuario configurado se guarda en `localStorage`, manteniendo la preferencia entre sesiones.
