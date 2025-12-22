@@ -2,6 +2,13 @@
 
 Todos los cambios notables en el proyecto "Last.fm Visualizer" serán documentados en este archivo.
 
+## [2025-12-22] - Configuración de Usuario
+
+### Añadido
+- **Cambio de Usuario en UI**: Se implementó un botón flotante (FAB) y una ventana modal que permite cambiar el usuario de Last.fm directamente desde la interfaz.
+- **Persistencia**: El nombre de usuario configurado se guarda en `localStorage`, manteniendo la preferencia entre sesiones.
+- **Feedback Visual**: La cuadrícula se limpia y recarga automáticamente al guardar un nuevo usuario.
+
 ## [2025-12-16] - Estabilidad y Consistencia Visual
 
 ### Cambiado
