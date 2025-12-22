@@ -61,6 +61,9 @@
             transform: translateY(20px);
             opacity: 0;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         .track-container:hover .track-info {
             transform: translateY(0);
@@ -69,6 +72,25 @@
         
         .track-title { font-weight: 800; font-size: 1.1rem; margin-bottom: 4px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .track-artist { font-weight: 400; font-size: 0.9rem; color: #ccc; }
+
+        .track-info-content { flex: 1; min-width: 0; }
+        .loved-icon {
+            width: 24px; height: 24px;
+            fill: #E31B23;
+            margin-left: 15px;
+            display: none;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            animation: heartbeat 1.5s infinite;
+        }
+        .loved-icon.visible { display: block; }
+        
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            15% { transform: scale(1.15); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.15); }
+            60% { transform: scale(1); }
+        }
 
         /* Now Playing Indicator */
         .now-playing-badge {
@@ -227,8 +249,13 @@
                         <div class="eq-bar"></div><div class="eq-bar"></div><div class="eq-bar"></div>
                     </div>
                     <div class="track-info">
-                        <div class="track-title"></div>
-                        <div class="track-artist"></div>
+                        <div class="track-info-content">
+                            <div class="track-title"></div>
+                            <div class="track-artist"></div>
+                        </div>
+                        <svg class="loved-icon" viewBox="0 0 24 24">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                        </svg>
                     </div>
                 `;
                 GRID.appendChild(a);
@@ -272,7 +299,8 @@
 
         async function updateTracks() {
             try {
-                const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${USER}&api_key=${API_KEY}&format=json&limit=${SLOT_COUNT}`);
+                // Added extended=1 to get 'loved' status
+                const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${USER}&api_key=${API_KEY}&format=json&limit=${SLOT_COUNT}&extended=1`);
                 const data = await res.json();
                 if (!data.recenttracks?.track) return;
 
@@ -282,7 +310,7 @@
                 
                 // Process images in parallel
                 const processed = await Promise.all(tracks.map(async (t) => {
-                    const artistName = t.artist?.['#text'] || 'Unknown';
+                    const artistName = t.artist?.name || t.artist?.['#text'] || 'Unknown';
                     
                     // 1. Try Artist Image
                     let img = await getArtistImage(artistName);
@@ -305,7 +333,8 @@
                         artist: artistName,
                         image: img,
                         url: t.url,
-                        nowPlaying: t['@attr']?.nowplaying === 'true'
+                        nowPlaying: t['@attr']?.nowplaying === 'true',
+                        loved: t.loved === '1'
                     };
                 }));
 
@@ -316,6 +345,7 @@
                     const imgEl = slot.querySelector('.track-img');
                     const titleEl = slot.querySelector('.track-title');
                     const artistEl = slot.querySelector('.track-artist');
+                    const lovedEl = slot.querySelector('.loved-icon');
                     
                     // Update Link
                     if (slot.href !== track.url) slot.href = track.url;
@@ -323,6 +353,13 @@
                     // Update Text
                     if (titleEl.textContent !== track.title) titleEl.textContent = track.title;
                     if (artistEl.textContent !== track.artist) artistEl.textContent = track.artist;
+
+                    // Update Loved Status
+                    if (track.loved) {
+                        lovedEl.classList.add('visible');
+                    } else {
+                        lovedEl.classList.remove('visible');
+                    }
 
                     // Update Image only if changed
                     if (imgEl.src !== track.image) {
