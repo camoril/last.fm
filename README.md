@@ -5,7 +5,7 @@ Este proyecto es una visualización web moderna y responsiva que muestra las úl
 ## Funcionalidad
 
 - **Grid Visual**: Muestra una cuadrícula dinámica (adaptable a móvil/desktop) con las imágenes de los artistas recientes.
-- **Actualización en Tiempo Real**: La página consulta la API de Last.fm cada 15 segundos para mantener la lista actualizada.
+- **Actualización en Tiempo Real**: La página consulta la API de Last.fm cada 10 segundos para mantener la lista actualizada. Los tiempos relativos se actualizan cada 30 segundos.
 - **Prioridad de Imagen de Artista**:
   - A diferencia de implementaciones estándar, este visualizador **ignora las portadas de álbumes** (que suelen ser inconsistentes o de baja calidad en la API) y busca siempre la imagen oficial del artista.
   - Utiliza un sistema de caché en memoria para minimizar las llamadas a la API de `artist.getinfo`.

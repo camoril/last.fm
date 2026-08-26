@@ -2,6 +2,31 @@
 
 Todos los cambios notables en el proyecto "Last.fm Visualizer" serán documentados en este archivo.
 
+## [2026-08-25] - Corrección de Bugs y Mejoras de Accesibilidad
+
+### Corregido
+- **Intervalo de actualización**: Corregida la discrepancia en la documentación. El código actualiza cada 10 segundos (no 15 como decía el README).
+- **Tiempos relativos desactualizados**: Los badges de tiempo ("2m", "1h") ahora se actualizan automáticamente cada 30 segundos mediante un intervalo independiente, sin esperar a que cambie la canción.
+- **Usuario inexistente**: Ahora se valida que el usuario exista en Last.fm antes de guardar. Si no existe, se muestra un mensaje de error en el modal.
+- **Manejo de errores de red**: Errores de conexión ahora se muestran visualmente con un toast de error en lugar de solo console.error.
+- **Caché de artistas no persistente**: El caché de imágenes de artistas ahora se guarda en localStorage, evitando llamadas repetidas a la API al recargar la página.
+
+### Añadido
+- **Indicador de carga**: Spinner visible durante la carga inicial y actualizaciones.
+- **Indicador de estado**: Badge en esquina inferior izquierda muestra estado de conexión (Conectado/Error).
+- **Toast de errores**: Notificaciones visuales no intrusivas para errores de API.
+- **Validación de usuario**: Feedback visual durante la validación del usuario en el modal.
+- **Cierre de modal con Escape**: El modal ahora se puede cerrar con la tecla Escape.
+- **Atributos de accesibilidad**: 
+  - `aria-label` en botones y contenedores de tracks
+  - `role="dialog"` y `aria-modal="true"` en el modal
+  - `aria-live="polite"` en toasts y mensajes de error
+  - `alt` text dinámico en imágenes de artistas
+  - `aria-hidden="true"` en iconos decorativos
+
+### Cambiado
+- **Documentación**: README actualizado para reflejar el intervalo real de 10 segundos y la actualización independiente de tiempos cada 30 segundos.
+
 ## [2025-12-22] - Mejoras de UI y Funcionalidad
 
 ### Añadido
